@@ -1,0 +1,111 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "newVMName": {
+      "type": "string",
+      "defaultValue": "devuservm01"
+    },
+    "labName": {
+      "type": "string",
+      "defaultValue": "devtest-abhi"
+    },
+    "size": {
+      "type": "string",
+      "defaultValue": "Standard_B1ms"
+    },
+    "userName": {
+      "type": "string",
+      "defaultValue": "devuservm01"
+    },
+    "expirationDate": {
+      "type": "string",
+      "defaultValue": "2018-02-16T00:00:00.000Z"
+    },
+    "password": {
+      "type": "securestring"
+    },
+    "Visual_Studio_version": {
+      "type": "string",
+      "defaultValue": "2015"
+    },
+    "Visual_Studio_sku": {
+      "type": "string",
+      "defaultValue": "Enterprise"
+    },
+    "Visual_Studio_installerArgs": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "variables": {
+    "labSubnetName": "[concat(variables('labVirtualNetworkName'), 'Subnet')]",
+    "labVirtualNetworkId": "[resourceId('Microsoft.DevTestLab/labs/virtualnetworks', parameters('labName'), variables('labVirtualNetworkName'))]",
+    "labVirtualNetworkName": "[concat('Dtl', parameters('labName'))]",
+    "vmId": "[resourceId ('Microsoft.DevTestLab/labs/virtualmachines', parameters('labName'), parameters('newVMName'))]",
+    "vmName": "[concat(parameters('labName'), '/', parameters('newVMName'))]"
+  },
+  "resources": [
+    {
+      "apiVersion": "2017-04-26-preview",
+      "type": "Microsoft.DevTestLab/labs/virtualmachines",
+      "name": "[variables('vmName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "labVirtualNetworkId": "[variables('labVirtualNetworkId')]",
+        "notes": "[smalldisk] Windows Server 2016 Datacenter - Server Core",
+        "galleryImageReference": {
+          "offer": "WindowsServer",
+          "publisher": "MicrosoftWindowsServer",
+          "sku": "2016-Datacenter-Server-Core-smalldisk",
+          "osType": "Windows",
+          "version": "latest"
+        },
+        "size": "[parameters('size')]",
+        "userName": "[parameters('userName')]",
+        "password": "[parameters('password')]",
+        "isAuthenticationWithSshKey": false,
+        "artifacts": [
+          {
+            "artifactId": "[resourceId('Microsoft.DevTestLab/labs/artifactSources/artifacts', parameters('labName'), 'public repo', 'windows-visualstudio')]",
+            "parameters": [
+              {
+                "name": "version",
+                "value": "[parameters('Visual_Studio_version')]"
+              },
+              {
+                "name": "sku",
+                "value": "[parameters('Visual_Studio_sku')]"
+              },
+              {
+                "name": "installerArgs",
+                "value": "[parameters('Visual_Studio_installerArgs')]"
+              }
+            ]
+          }
+        ],
+        "labSubnetName": "[variables('labSubnetName')]",
+        "disallowPublicIpAddress": true,
+        "storageType": "Standard",
+        "allowClaim": true,
+        "expirationDate": "[parameters('expirationDate')]",
+        "networkInterface": {
+          "sharedPublicIpAddressConfiguration": {
+            "inboundNatRules": [
+              {
+                "transportProtocol": "tcp",
+                "backendPort": 3389
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "labVMId": {
+      "type": "string",
+      "value": "[variables('vmId')]"
+    }
+  }
+}
